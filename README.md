@@ -1,217 +1,217 @@
-### 1. Çizgi Takip Robotu Girişi:
+### 1. Line Follower Robot Introduction:
 
-Çizgi takip robotları, genellikle bir veya birden fazla çizgi izleme sensörü kullanarak zemindeki belirli bir çizgiyi takip etmek üzere tasarlanmış robotlardır. Bu sensörler, yüzeydeki renk farklılıklarını algılar ve bu bilgileri kullanarak robotun hareketini kontrol eder.
+Line following robots are robots designed to follow a specific line on the ground, usually using one or more line tracking sensors. These sensors detect color differences on the surface and control the robot's movement using this information.
 
-### 2. PID Kontrol:
+### 2. PID Control:
 
-PID (Proportional-Integral-Derivative) kontrol, bir sistemdeki hata sinyalini analiz ederek ve buna göre bir kontrol sinyali üreterek sistem davranışını düzeltmeye yönelik bir kontrol stratejisidir. PID kontrol algoritmaları, bir hedef değer ile gerçek değer arasındaki farkı kullanarak sistemi düzeltir.
+PID (Proportional-Integral-Derivative) control is a control strategy to correct system behavior by analyzing the error signal in a system and generating a control signal accordingly. PID control algorithms correct the system using the difference between a target value and the actual value.
 
-### 3. Çizgi İzleme Algoritması:
+### 3. Line Tracing Algorithm:
 
-Çizgi takip robotları, genellikle sensörlerle zeminden yansıyan ışığı ölçerek çizgiyi takip ederler. Bu sensörlerden gelen bilgileri kullanarak, robotun çizgi üzerinde hareket etmesini sağlamak için PID kontrol algoritması kullanılır.
+Line following robots generally follow the line by measuring the light reflected from the ground with sensors. Using the information from these sensors, the PID control algorithm is used to make the robot move on the line.
 
-### 4. Temel Matematiksel Hesaplar:
+### 4. Basic Mathematical Calculations:
 
-#### 4.1. Hata Hesabı:
-Hata (`hata`), sensör değerinin beklenen değerden ne kadar sapma gösterdiğini belirten bir değerdir. Bu, çizgi izleme sensörlerinden gelen okuma değeri ile orta değer (örneğin, 1500) arasındaki farkı temsil eder.
-
-```cpp
-hata = qtra.readLine(sensorValues, 1, zemin) - 1500;
-```
-
-#### 4.2. PID Kontrolü:
-PID kontrolü, hata değerine ve hata değişiminin zaman türevine dayanır. Kp, Kd ve Kp parametreleri, bu değerleri nasıl kullanacağımızı belirler.
+#### 4.1. Error Calculation:
+Error (`error`) is a value that indicates how much the sensor value deviates from the expected value. This represents the difference between the reading from the line tracking sensors and the median value (for example, 1500).
 
 ```cpp
-int duzeltmehizi = Kp * hata + Kd * (hata - sonhata);
+error = qtra.readLine(sensorValues, 1, ground) - 1500;
 ```
 
-#### 4.3. Motor Hızları:
-Elde edilen düzeltilmiş hata (`duzeltmehizi`), taban hız değeri ile kullanılarak sağ ve sol motor hızları hesaplanır.
+#### 4.2. PID Control:
+PID control is based on the error value and the time derivative of the error change. The parameters Kp, Kd and Kp determine how we will use these values.
 
 ```cpp
-solmotorpwm = tabanhiz + duzeltmehizi;
-sagmotorpwm = tabanhiz - duzeltmehizi;
+int correctionrate = Kp * error + Kd * (error - posterror);
 ```
 
-### 5. Motor Kontrol Fonksiyonu:
+#### 4.3. Engine Speeds:
+The resulting corrected error (`correction speed`) is used with the base speed value to calculate the right and left engine speeds.
 
-Motor kontrol fonksiyonu, sağ ve sol motorların PWM sinyallerini uygun şekilde ayarlar ve aynı zamanda hareket yönünü belirler.
+```cpp
+solmotorpwm = basespeed + correctionspeed;
+sagmotorpwm = basespeed - correctionspeed;
+```
+
+### 5. Engine Control Function:
+
+The motor control function appropriately adjusts the PWM signals of the right and left motors and also determines the direction of movement.
 
 ```cpp
 void motorkontrol(int sagmotorpwm, int solmotorpwm) {
-  // Sağ ve sol motorların hız ve yön kontrolü
-  // Yön bilgisi Serial Monitor'a yazdırılır
+   // Speed and direction control of right and left motors
+   // Direction information is printed to Serial Monitor
 }
 ```
 
-### 6. PID Kontrol Algoritması:
+### 6. PID Control Algorithm:
 
 ```cpp
-int duzeltmehizi = Kp * hata + Kd * (hata - sonhata);
-sonhata = hata;
-solmotorpwm = tabanhiz + duzeltmehizi;
-sagmotorpwm = tabanhiz - duzeltmehizi;
+int correctionrate = Kp * error + Kd * (error - posterror);
+posterror = error;
+solmotorpwm = basespeed + correctionspeed;
+sagmotorpwm = basespeed - correctionspeed;
 solmotorpwm = constrain(solmotorpwm, -255, maxhiz);
 sagmotorpwm = constrain(sagmotorpwm, -255, maxhiz);
 ```
 
-- `Kp` (Proportional Gain): Hata ile orantılı bir düzeltme sağlar. Yani, eğer robot çizgiden sapıyorsa, bu orantısal düzeltme miktarı artar.
+- `Kp` (Proportional Gain): Provides a correction proportional to the error. So, if the robot deviates from the line, this proportional correction amount increases.
   
-- `Kd` (Derivative Gain): Hatanın zaman içindeki değişimini kontrol eder. Bu, robotun hızlı bir şekilde düzeltilmesine yardımcı olur.
+- `Kd` (Derivative Gain): Controls the change of the error over time. This helps in quick fixing of the robot.
 
-- `duzeltmehizi`: PID kontrol algoritmasının çıkışıdır. Hatanın Kp ve Kd ile çarpılmasıyla elde edilir.
+- `correctionrate`: It is the output of the PID control algorithm. It is obtained by multiplying the error by Kp and Kd.
 
-- `sonhata`: Bir önceki ölçülen hata değerini saklar.
+- `lasterror`: Stores the previous measured error value.
 
-- `solmotorpwm` ve `sagmotorpwm`: PID kontrolü ile düzeltilmiş hız değerleridir.
+- `solmotorpwm` and `sagmotorpwm`: Speed values corrected by PID control.
 
-- `constrain()`: Bu fonksiyon, belirtilen aralıkta bir değer sağlar. Motor hızları, -255 ile +255 arasında olmalıdır.
+- `constrain()`: This function provides a value in the specified range. Engine speeds should be between -255 and +255.
 
-### 7. Motor Kontrol Fonksiyonu:
+### 7. Engine Control Function:
 
 ```cpp
 void motorkontrol(int sagmotorpwm, int solmotorpwm) {
-  if (sagmotorpwm <= 0) {
-    analogWrite(sagmotor1, 0);
-    analogWrite(sagmotor2, abs(sagmotorpwm));
-  } else {
-    analogWrite(sagmotor1, sagmotorpwm);
-    analogWrite(sagmotor2, 0);
-  }
+   if (sagmotorpwm <= 0) {
+     analogWrite(sagmotor1, 0);
+     analogWrite(sagmotor2, abs(sagmotorpwm));
+   } else {
+     analogWrite(sagmotor1, sagmotorpwm);
+     analogWrite(sagmotor2, 0);
+   }
 
-  if (solmotorpwm <= 0) {
-    analogWrite(solmotor1, abs(solmotorpwm));
-    analogWrite(solmotor2, 0);
-  } else {
-    analogWrite(solmotor1, 0);
-    analogWrite(solmotor2, solmotorpwm);
-  }
+   if (solmotorpwm <= 0) {
+     analogWrite(solmotor1, abs(solmotorpwm));
+     analogWrite(solmotor2, 0);
+   } else {
+     analogWrite(solmotor1, 0);
+     analogWrite(solmotor2, solmotorpwm);
+   }
 
-  // Yön bilgisi Serial Monitor'a yazdırılır
-  if (sagmotorpwm > 0 && solmotorpwm > 0) {
-    Serial.println("Forward");
-  } else if (sagmotorpwm < 0 && solmotorpwm < 0) {
-    Serial.println("Backward");
-  } else if (sagmotorpwm > 0 && solmotorpwm == 0) {
-    Serial.println("Right");
-  } else if (sagmotorpwm == 0 && solmotorpwm > 0) {
-    Serial.println("Left");
-  }
+   // Direction information is printed to Serial Monitor
+   if (sagmotorpwm > 0 && solmotorpwm > 0) {
+     Serial.println("Forward");
+   } else if (sagmotorpwm < 0 && solmotorpwm < 0) {
+     Serial.println("Backward");
+   } else if (sagmotorpwm > 0 && solmotorpwm == 0) {
+     Serial.println("Right");
+   } else if (sagmotorpwm == 0 && solmotorpwm > 0) {
+     Serial.println("Left");
+   }
 }
 ```
 
-Bu fonksiyon, sağ ve sol motorların PWM değerlerine göre kontrol edilmesini sağlar. Ayrıca, motorların hareket yönü bilgisi Serial Monitor'a yazdırılır.
+This function allows the right and left motors to be controlled according to their PWM values. Additionally, the movement direction information of the motors is printed to the Serial Monitor.
 
-### 8. Ana `loop()` Fonksiyonu:
+### 8. Main `loop()` Function:
 
 ```cpp
 void loop() {
-  hata = qtra.readLine(sensorValues, 1, zemin) - 1500;
-  int duzeltmehizi = Kp * hata + Kd * (hata - sonhata);
-  sonhata = hata;
-  solmotorpwm = tabanhiz + duzeltmehizi;
-  sagmotorpwm = tabanhiz - duzeltmehizi;
-  solmotorpwm = constrain(solmotorpwm, -255, maxhiz);
-  sagmotorpwm = constrain(sagmotorpwm, -255, maxhiz);
-  motorkontrol(sagmotorpwm, solmotorpwm);
+   error = qtra.readLine(sensorValues, 1, ground) - 1500;
+   int correctionrate = Kp * error + Kd * (error - posterror);
+   posterror = error;
+   solmotorpwm = basespeed + correctionspeed;
+   sagmotorpwm = basespeed - correctionspeed;
+   solmotorpwm = constrain(solmotorpwm, -255, maxhiz);
+   sagmotorpwm = constrain(sagmotorpwm, -255, maxhiz);
+   motorkontrol(sagmotorpwm, leftmotorpwm);
 }
 ```
 
-### 9. Çizgi İzleme Algoritması:
+### 9. Line Tracing Algorithm:
 
-Çizgi izleme sensörleri, genellikle bir dizi fotosel veya IR sensörü kullanarak zemindeki çizgiyi algılarlar. Sensörlerin her biri, çizgi üzerinde veya çizgi dışında olma durumuna göre farklı değerler üretir.
+Line tracking sensors usually detect the line on the ground using an array of photocells or IR sensors. Each of the sensors produces different values depending on whether they are on or off the line.
 
-### 10. PID Kontrol Algoritması:
+### 10. PID Control Algorithm:
 
-PID kontrol algoritması, robotun çizgide kalmak için çizgi izleme sensörlerinden alınan bilgileri kullanır. Bu algoritma, hata (istenilen pozisyon ile sensör çıktısı arasındaki fark), hata değişimi (hata değerinin zaman içindeki değişimi) ve integral (hata değerlerinin toplamı) terimlerini kullanarak motor hızlarını ayarlar.
+The PID control algorithm uses information from the robot's line tracking sensors to stay on the line. This algorithm calculates motor speeds using the terms error (difference between the desired position and sensor output), error variation (change of error value over time) and integral (sum of error values) settings.
 
 ```cpp
-int hata = (qtra.readLine(sensorValues, 1, zemin) - 1500);
-int duzeltmehizi = Kp * hata + Kd * (hata - sonhata);
-sonhata = hata;
-solmotorpwm = tabanhiz + duzeltmehizi;
-sagmotorpwm = tabanhiz - duzeltmehizi;
+int error = (qtra.readLine(sensorValues, 1, ground) - 1500);
+int correctionrate = Kp * error + Kd * (error - posterror);
+posterror = error;
+solmotorpwm = basespeed + correctionspeed;
+sagmotorpwm = basespeed - correctionspeed;
 solmotorpwm = constrain(solmotorpwm, -255, maxhiz);
 sagmotorpwm = constrain(sagmotorpwm, -255, maxhiz);
 ```
 
-- `hata`: Çizgi izleme sensörlerinden alınan okuma değeri ile beklenen değer arasındaki farkı temsil eder.
+- `error`: Represents the difference between the reading value received from line tracking sensors and the expected value.
 
-- `duzeltmehizi`: PID kontrol algoritmasının çıkışıdır. Kp ve Kd terimleri ile hata değeri üzerinden hesaplanır.
+- `correctionrate`: It is the output of the PID control algorithm. It is calculated in terms of Kp and Kd and the error value.
 
-- `sonhata`: Bir önceki ölçülen hata değerini saklar.
+- `lasterror`: Stores the previous measured error value.
 
-- `solmotorpwm` ve `sagmotorpwm`: PID kontrolü ile düzeltilmiş hız değerleridir.
+- `solmotorpwm` and `sagmotorpwm`: Speed values corrected by PID control.
 
-### 11. Motor Kontrol Fonksiyonu:
+### 11. Engine Control Function:
 
-Motor kontrol fonksiyonu, hesaplanan motor hızlarına göre motorları kontrol eder.
+The engine control function controls the engines according to calculated engine speeds.
 
 ```cpp
 void motorkontrol(int sagmotorpwm, int solmotorpwm) {
-  if (sagmotorpwm <= 0) {
-    analogWrite(sagmotor1, 0);
-    analogWrite(sagmotor2, abs(sagmotorpwm));
-  } else {
-    analogWrite(sagmotor1, sagmotorpwm);
-    analogWrite(sagmotor2, 0);
-  }
+   if (sagmotorpwm <= 0) {
+     analogWrite(sagmotor1, 0);
+     analogWrite(sagmotor2, abs(sagmotorpwm));
+   } else {
+     analogWrite(sagmotor1, sagmotorpwm);
+     analogWrite(sagmotor2, 0);
+   }
 
-  if (solmotorpwm <= 0) {
-    analogWrite(solmotor1, abs(solmotorpwm));
-    analogWrite(solmotor2, 0);
-  } else {
-    analogWrite(solmotor1, 0);
-    analogWrite(solmotor2, solmotorpwm);
-  }
+   if (solmotorpwm <= 0) {
+     analogWrite(solmotor1, abs(solmotorpwm));
+     analogWrite(solmotor2, 0);
+   } else {
+     analogWrite(solmotor1, 0);
+     analogWrite(solmotor2, solmotorpwm);
+   }
 
-  // Yön bilgisi Serial Monitor'a yazdırılır
-  if (sagmotorpwm > 0 && solmotorpwm > 0) {
-    Serial.println("Forward");
-  } else if (sagmotorpwm < 0 && solmotorpwm < 0) {
-    Serial.println("Backward");
-  } else if (sagmotorpwm > 0 && solmotorpwm == 0) {
-    Serial.println("Right");
-  } else if (sagmotorpwm == 0 && solmotorpwm > 0) {
-    Serial.println("Left");
-  }
+   // Direction information is printed to Serial Monitor
+   if (sagmotorpwm > 0 && solmotorpwm > 0) {
+     Serial.println("Forward");
+   } else if (sagmotorpwm < 0 && solmotorpwm < 0) {
+     Serial.println("Backward");
+   } else if (sagmotorpwm > 0 && solmotorpwm == 0) {
+     Serial.println("Right");
+   } else if (sagmotorpwm == 0 && solmotorpwm > 0) {
+     Serial.println("Left");
+   }
 }
 ```
 
-Bu fonksiyon, hesaplanan motor hızlarına göre sağ ve sol motorları kontrol eder. Ayrıca, motorların hareket yönü bilgisi Serial Monitor'a yazdırılır.
+This function controls the right and left motors according to the calculated motor speeds. Additionally, the movement direction information of the motors is printed to the Serial Monitor.
 
-### 12. Ana `setup()` Fonksiyonu:
+### 12. Main `setup()` Function:
 
 ```cpp
 void setup() {
-  pinMode(solmotor1, OUTPUT);
-  pinMode(solmotor2, OUTPUT);
-  pinMode(sagmotor1, OUTPUT);
-  pinMode(sagmotor2, OUTPUT);
-  tone(led_buzzer, 500, 100);
-  delay(50);
-  noTone(led_buzzer);
-  Serial.begin(9600);
+   pinMode(solmotor1, OUTPUT);
+   pinMode(solmotor2, OUTPUT);
+   pinMode(sagmotor1, OUTPUT);
+   pinMode(sagmotor2, OUTPUT);
+   tone(led_buzzer, 500, 100);
+   delay(50);
+   noTone(led_buzzer);
+   Serial.begin(9600);
 
-  for (i = 0; i < 80; i++) {
-    // Robot belirli yönlere hareket eder
-    // Sensör kalibrasyonu yapılır
-    qtra.calibrate();
-    delay(3);
-  }
+   for (i = 0; i < 80; i++) {
+     //Robot moves in certain directions
+     // Sensor calibration is done
+     qtra.calibrate();
+     delay(3);
+   }
 
-  motorkontrol(0, 0);
-  tone(led_buzzer, 3000, 100);
-  delay(50);
-  noTone(led_buzzer);
+   motorcontrol(0, 0);
+   tone(led_buzzer, 3000, 100);
+   delay(50);
+   noTone(led_buzzer);
 }
 ```
 
-Çizgi takip robotunuzun kodu üzerindeki detaylı açıklamaları incelediğiniz için teşekkür ederim. Eğer daha fazla yardıma ihtiyacınız olursa veya başka konulara odaklanmak istiyorsanız, lütfen bana bildirin. Başarılar dilerim ve keyifli kodlamalar!
+Thank you for reviewing the detailed explanations on the code of your line follower robot. If you need more help or want to focus on other topics, please let me know. I wish you success and happy coding!
 
 ---
 
 Mr.red
 
-Embded System Developer & Android Front End Developer
+Embedded System Developer & Android Front End Developer
